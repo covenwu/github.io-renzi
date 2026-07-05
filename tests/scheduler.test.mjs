@@ -121,3 +121,34 @@ test('难度系数边界：上限2.8下限1.3', () => {
   const lo = applyAnswer(mkChar({ easeFactor: 1.35 }), false, undefined, NOW);
   assert.equal(lo.char.easeFactor, 1.3);
 });
+
+test('reinsert 对已在队列中的 id 是移动而非重复', () => {
+  assert.deepEqual(reinsert([2, 9, 4], 9, 6), [2, 4, 9]);
+});
+
+test('生命周期集成：错→对(不写库)→对(过关)，与调用方 updateStat 保持一致', () => {
+  const c0 = mkChar({ repetitions: 2, interval: 3, easeFactor: 2.0, totalWrong: 0 });
+  // 第一次答错：一次性惩罚
+  let stat;
+  const r1 = applyAnswer(c0, false, stat, NOW);
+  stat = updateStat(stat, false);
+  assert.equal(r1.changed, true);
+  assert.deepEqual(stat, { wrong: 1, streak: 0 });
+  assert.equal(r1.char.easeFactor, 1.8);
+  assert.equal(r1.char.repetitions, 0);
+  const c1 = r1.char;
+  // 第一次答对：streak 1，不过关，不写库
+  const r2 = applyAnswer(c1, true, stat, NOW);
+  stat = updateStat(stat, true);
+  assert.equal(r2.changed, false);
+  assert.equal(r2.graduated, false);
+  assert.deepEqual(stat, { wrong: 1, streak: 1 });
+  // 第二次连续答对：过关，interval 回到 1 天，脏浮点 EF 不影响取整
+  const r3 = applyAnswer(c1, true, stat, NOW);
+  stat = updateStat(stat, true);
+  assert.equal(r3.graduated, true);
+  assert.equal(r3.char.repetitions, 1);
+  assert.equal(r3.char.interval, 1);
+  assert.equal(r3.char.nextReviewAt, NOW + DAY_MS);
+  assert.equal(isGraduated(stat), true);
+});

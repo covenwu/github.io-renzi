@@ -79,23 +79,40 @@ iPad Safari「添加到主屏幕」后全屏、离线运行。
 
 新字录入：`interval=0, repetitions=0, easeFactor=2.5, nextReviewAt=now` → 立即到期。
 
-会话供字优先级（循环取下一张卡）：
+### 当日过关制
 
-1. 到期字（`nextReviewAt <= now`）：逾期最久优先，同期按 `totalWrong` 降序；
-2. 本次会话答错的字：答错后重新插入队列（间隔至少 3 张卡之后），直到答对；
-3. 两类均空 → 显示「今天没有需要复习的字」/「全部复习完成」提示页，会话结束。
-   **不提供提前复习。**
+当天的复习集合 = 全部到期字（`nextReviewAt <= now`）。目标：当天集合内每个字
+均「过关」后当日复习结束。
 
-作答规则（二元）：
+- 当天从未答错的字：答对 1 次即过关；
+- 当天答错过的字：需**连续答对 2 次**才过关，期间再答错则连续计数清零；
+- 已过关的字当天不再出现。
 
-- **记住了**：`repetitions += 1`；间隔递增：
+当天对错频次不建新表，由 reviewLog 当天记录实时推导——中途退出后再进入，
+过关进度可准确恢复。
+
+### 会话供字优先级（循环取下一张卡）
+
+1. 答错字的定时重现（硬规则）：按当天已错次数决定插入间隔——
+   错 1 次隔 6 张卡、错 2 次隔 4 张、错 ≥3 次隔 2 张（高频错误高频反复）；
+2. 尚未出示的到期字：逾期最久优先，同期按 `totalWrong` 降序
+   （未来的组词相邻推送为软规则，让位于第 1 条）；
+3. 全部过关 → 显示「今日全部识记成功」；当天本无到期字 →
+   显示「今天没有需要复习的字」。**均不提供提前复习。**
+
+### 长期计划更新（二元作答）
+
+- **记住了（过关那一次）**：`repetitions += 1`；间隔递增：
   - repetitions=1 → interval = 1 天
   - repetitions=2 → interval = 3 天
   - repetitions≥3 → interval = round(interval × easeFactor)
   - `easeFactor = min(easeFactor + 0.05, 2.8)`
   - `nextReviewAt = now + interval 天`
-- **忘了**：`repetitions = 0, interval = 0, nextReviewAt = now`（本会话内重新出现），
+  - 过关前的中间正确作答只计入当天频次，不推进长期计划。
+- **忘了（当天首次）**：`repetitions = 0, interval = 0, nextReviewAt = now`，
   `easeFactor = max(easeFactor - 0.2, 1.3)`，`totalWrong += 1`。
+  当天后续再错仅影响当天重现频率与过关计数，**不重复扣难度系数**
+  （避免同日多次惩罚导致间隔失真）。
 
 每次作答立即写库并追加 reviewLog；用户任何时刻退出均不丢进度，
 未过关的字（interval=0）下次会话自动排在最前。

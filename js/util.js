@@ -3,7 +3,7 @@ const DAY_MS = 86400000;
 export function extractHanChars(text) {
   const seen = new Set();
   for (const ch of text) {
-    if (/[一-鿿]/.test(ch)) seen.add(ch);
+    if (/[\u{3400}-\u{4DBF}\u{4E00}-\u{9FFF}\u{20000}-\u{2FA1F}]/u.test(ch)) seen.add(ch);
   }
   return [...seen];
 }

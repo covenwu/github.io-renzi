@@ -7,6 +7,10 @@ test('extractHanChars 提取去重汉字，忽略其他字符', () => {
   assert.deepEqual(extractHanChars('hello'), []);
 });
 
+test('extractHanChars 支持扩展区汉字（如 𠀀、㐀）', () => {
+  assert.deepEqual(extractHanChars('天\u{20000}㐀x'), ['天', '\u{20000}', '㐀']);
+});
+
 test('localDateStr 输出本地 YYYY-MM-DD', () => {
   const ts = new Date(2026, 6, 5, 23, 30).getTime(); // 2026-07-05 本地
   assert.equal(localDateStr(ts), '2026-07-05');

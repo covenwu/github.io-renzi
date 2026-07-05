@@ -2,17 +2,20 @@ import { openDB } from '../vendor/idb.js';
 
 let dbp;
 function db() {
-  dbp ??= openDB('renzi', 1, {
-    upgrade(d) {
-      const c = d.createObjectStore('characters', { keyPath: 'id', autoIncrement: true });
-      c.createIndex('char', 'char', { unique: true });
-      c.createIndex('nextReviewAt', 'nextReviewAt');
-      const l = d.createObjectStore('reviewLog', { keyPath: 'id', autoIncrement: true });
-      l.createIndex('reviewedAt', 'reviewedAt');
-      l.createIndex('charId', 'charId');
-      d.createObjectStore('settings');
-    },
-  });
+  if (!dbp) {
+    dbp = openDB('renzi', 1, {
+      upgrade(d) {
+        const c = d.createObjectStore('characters', { keyPath: 'id', autoIncrement: true });
+        c.createIndex('char', 'char', { unique: true });
+        c.createIndex('nextReviewAt', 'nextReviewAt');
+        const l = d.createObjectStore('reviewLog', { keyPath: 'id', autoIncrement: true });
+        l.createIndex('reviewedAt', 'reviewedAt');
+        l.createIndex('charId', 'charId');
+        d.createObjectStore('settings');
+      },
+    });
+    dbp.catch(() => { dbp = undefined; }); // 打开失败则允许下次重试
+  }
   return dbp;
 }
 

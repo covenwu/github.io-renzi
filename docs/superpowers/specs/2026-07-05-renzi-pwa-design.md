@@ -67,6 +67,14 @@ iPad Safari「添加到主屏幕」后全屏、离线运行。
 
 仅存杂项：上次备份时间戳等。无每日上限设置。
 
+### 数据演进要求
+
+- IndexedDB 使用版本号 + `onupgradeneeded` 迁移：将来扩展字段/新表时就地升级，
+  **已有数据（字、进度、照片）必须原样保留，禁止任何需要用户重新录入的升级路径**。
+- 备份 `data.json` 的 `version` 字段用于导入时识别旧格式并自动升级，
+  旧备份永远可以导入新版本应用。
+- 应用部署地址（GitHub Pages URL）确定后不再变更（IndexedDB 数据绑定域名）。
+
 ## 5. 复习调度算法
 
 新字录入：`interval=0, repetitions=0, easeFactor=2.5, nextReviewAt=now` → 立即到期。

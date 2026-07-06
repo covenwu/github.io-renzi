@@ -28,6 +28,7 @@ test('导出导入往返一致', async () => {
   const c2 = r.characters.find(c => c.id === 2);
   assert.equal(c2.photo, null);
   assert.deepEqual(r.reviewLog, logs);
+  assert.deepEqual(r.missingPhotos, []);
 });
 
 test('data.json 内含版本号，照片存为 photos/<id>.jpg', async () => {
@@ -45,4 +46,31 @@ test('拒绝过新的备份版本', async () => {
   zip.file('data.json', JSON.stringify({ version: 999, characters: [], reviewLog: [] }));
   const data = await zip.generateAsync({ type: 'uint8array' });
   await assert.rejects(() => importZip(JSZip, data), /版本/);
+});
+
+test('data.json 损坏时给出明确中文错误', async () => {
+  const zip = new JSZip();
+  zip.file('data.json', '{broken');
+  const data = await zip.generateAsync({ type: 'uint8array' });
+  await assert.rejects(() => importZip(JSZip, data), /损坏/);
+});
+
+test('缺少 characters 字段时给出明确中文错误', async () => {
+  const zip = new JSZip();
+  zip.file('data.json', JSON.stringify({ version: 1, reviewLog: [] }));
+  const data = await zip.generateAsync({ type: 'uint8array' });
+  await assert.rejects(() => importZip(JSZip, data), /格式不正确/);
+});
+
+test('照片条目缺失时不中断导入并报告 missingPhotos', async () => {
+  const zip = new JSZip();
+  zip.file('data.json', JSON.stringify({
+    version: 1,
+    characters: [{ id: 1, char: '天', photo: 'photos/1.jpg' }],
+    reviewLog: [],
+  }));
+  const data = await zip.generateAsync({ type: 'uint8array' });
+  const r = await importZip(JSZip, data, 'uint8array');
+  assert.equal(r.characters[0].photo, null);
+  assert.deepEqual(r.missingPhotos, ['天']);
 });

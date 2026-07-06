@@ -23,17 +23,29 @@ export async function importZip(JSZip, data, photoType = 'blob') {
   const zip = await JSZip.loadAsync(data);
   const entry = zip.file('data.json');
   if (!entry) throw new Error('无效备份：缺少 data.json');
-  const meta = JSON.parse(await entry.async('string'));
+  let meta;
+  try {
+    meta = JSON.parse(await entry.async('string'));
+  } catch {
+    throw new Error('无效备份：data.json 内容损坏，无法解析');
+  }
   if (meta.version > BACKUP_VERSION) {
     throw new Error(`备份版本(${meta.version})比应用支持的(${BACKUP_VERSION})新，请先更新应用`);
   }
+  // TODO(v2): meta.version < BACKUP_VERSION 时在此就地升级旧格式
+  if (!Array.isArray(meta.characters) || !Array.isArray(meta.reviewLog)) {
+    throw new Error('无效备份：data.json 格式不正确');
+  }
   const characters = [];
+  const missingPhotos = [];
   for (const c of meta.characters) {
     let photo = null;
-    if (c.photo && zip.file(c.photo)) {
-      photo = await zip.file(c.photo).async(photoType);
+    if (c.photo) {
+      const f = zip.file(c.photo);
+      if (f) photo = await f.async(photoType);
+      else missingPhotos.push(c.char);
     }
     characters.push({ ...c, photo });
   }
-  return { characters, reviewLog: meta.reviewLog };
+  return { characters, reviewLog: meta.reviewLog, missingPhotos };
 }

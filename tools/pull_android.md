@@ -5,6 +5,8 @@
 
 ## 1. 拉取数据库（PowerShell）
 
+> 拉取前请先在手机上完全退出认字应用（从最近任务划掉），确保三个数据库文件是一致的静止快照。
+
 ```powershell
 mkdir android-data; cd android-data
 adb exec-out run-as com.babyword.learnword cat databases/babyword.db > babyword.db

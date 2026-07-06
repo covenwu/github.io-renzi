@@ -10,6 +10,7 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', e => {
+  // addAll 整体成败：部署传播期单个 404 会使安装失败、旧版继续服务——这是安全默认，勿改成逐个 catch
   e.waitUntil(
     caches.open(VERSION).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });

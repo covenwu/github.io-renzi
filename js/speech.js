@@ -5,7 +5,9 @@ export function canSpeak() {
 }
 
 function pickVoice() {
-  if (cachedVoice === undefined) {
+  // Safari 的 getVoices() 首次常返回空且 onvoiceschanged 未必触发，
+  // 未找到时不缓存 null，下次调用继续重试
+  if (!cachedVoice) {
     cachedVoice = speechSynthesis.getVoices()
       .find(v => v.lang.replace('_', '-').startsWith('zh')) || null;
   }

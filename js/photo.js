@@ -1,4 +1,5 @@
 // 压缩相机照片：长边 ≤1024px，JPEG 质量 0.7（目标 ~200KB 内）
+// 注意：Safari 13.1+ 的 drawImage 自动按 EXIF 方向绘制，勿再手动纠正方向
 export function compressImage(file, maxSide = 1024, quality = 0.7) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);

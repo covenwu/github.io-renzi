@@ -1,0 +1,9 @@
+{
+  "name": "renzi-pwa",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "认字 PWA - Chinese character learning application",
+  "scripts": {
+    "test": "node --test tests/**/*.test.mjs"
+  }
+}

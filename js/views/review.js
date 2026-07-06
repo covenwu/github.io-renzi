@@ -21,6 +21,7 @@ export async function renderReview(root, navigate) {
   let cursor = -1;      // -1 = 当前待答卡；>=0 = 回看 history[cursor]
   let hintShown = false;
   let photoUrl = null;
+  let answering = false;
 
   if (!queue.length) {
     renderDone(due.length ? '今日全部识记成功 🎉' : '今天没有需要复习的字');
@@ -98,24 +99,33 @@ export async function renderReview(root, navigate) {
   }
 
   async function answer(remembered) {
-    const id = queue[0];
-    const c = byId.get(id);
-    const before = stats.get(id);
-    const t = Date.now();
-    const { char: updated, graduated, changed } = applyAnswer(c, remembered, before, t);
-    const after = updateStat(before, remembered);
-    stats.set(id, after);
-    if (changed) {
-      await db.putCharacter(updated);
-      byId.set(id, updated);
+    if (answering) return; // 防止慢速写库时双击重复作答
+    answering = true;
+    try {
+      const id = queue[0];
+      const c = byId.get(id);
+      const before = stats.get(id);
+      const t = Date.now();
+      const { char: updated, graduated, changed } = applyAnswer(c, remembered, before, t);
+      if (changed) {
+        await db.putCharacter(updated);
+      }
+      await db.addLog({ charId: id, reviewedAt: t, remembered });
+      if (changed) byId.set(id, updated);
+      const after = updateStat(before, remembered);
+      stats.set(id, after);
+      history.push({ id, remembered });
+      queue.shift();
+      if (graduated) doneCount++;
+      else queue = reinsert(queue, id, reinsertGap(after.wrong));
+      if (!queue.length) { renderDone('今日全部识记成功 🎉'); return; }
+      cursor = -1;
+      renderCard();
+    } catch (e) {
+      alert('保存失败，请再试一次');
+      renderCard(); // 写库失败时会话状态未推进，重新显示当前卡
+    } finally {
+      answering = false;
     }
-    await db.addLog({ charId: id, reviewedAt: t, remembered });
-    history.push({ id, remembered });
-    queue.shift();
-    if (graduated) doneCount++;
-    else queue = reinsert(queue, id, reinsertGap(after.wrong));
-    if (!queue.length) { renderDone('今日全部识记成功 🎉'); return; }
-    cursor = -1;
-    renderCard();
   }
 }

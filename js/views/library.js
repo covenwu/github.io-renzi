@@ -1,6 +1,7 @@
 import * as db from '../db.js';
 import { exportZip, importZip } from '../backup.js';
 import { localDateStr } from '../util.js';
+import { compressImage } from '../photo.js';
 
 export async function renderLibrary(root, navigate) {
   const chars = (await db.getAllCharacters())
@@ -20,6 +21,9 @@ export async function renderLibrary(root, navigate) {
     <div class="libitem" data-id="${c.id}">
       <div class="hz">${c.char}</div>
       <div class="meta">下次复习 ${localDateStr(c.nextReviewAt)} · 答错 ${c.totalWrong} 次</div>
+      <label class="btn-plain">📷 ${c.photo ? '换照片' : '拍照'}
+        <input type="file" accept="image/*" capture="environment" class="hidden photo-input">
+      </label>
       <button class="btn-plain btn-danger del">删除</button>
     </div>`).join('');
 
@@ -80,6 +84,19 @@ export async function renderLibrary(root, navigate) {
   };
 
   for (const item of root.querySelectorAll('.libitem')) {
+    item.querySelector('.photo-input').onchange = async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const blob = await compressImage(file);
+        const c = await db.getCharacter(Number(item.dataset.id));
+        c.photo = blob;
+        await db.putCharacter(c);
+        renderLibrary(root, navigate);
+      } catch (err) {
+        alert('照片保存失败：' + err.message);
+      }
+    };
     item.querySelector('.del').onclick = async () => {
       const hz = item.querySelector('.hz').textContent;
       if (!confirm(`删除「${hz}」及其全部复习记录？`)) return;

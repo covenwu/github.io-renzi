@@ -1,7 +1,30 @@
+import * as db from './db.js';
 import { renderHome } from './views/home.js';
 import { renderInput } from './views/input.js';
 import { renderReview } from './views/review.js';
 import { renderLibrary } from './views/library.js';
+
+// 照片格式迁移：旧版把照片存为 Blob，WebKit 的 IDB Blob 旁挂机制在记录被
+// 改写后会使照片永久悬空。新格式一律存 ArrayBuffer（字节内联）。
+// 可读的旧照片就地转换；已损坏（不可读）的置空，可在字库页重拍。
+async function migratePhotoFormat() {
+  try {
+    if (await db.getSetting('photoFormat') === 2) return;
+    let allOk = true;
+    for (const c of await db.getAllCharacters()) {
+      if (c.photo instanceof Blob) {
+        try {
+          const buf = await c.photo.arrayBuffer();
+          await db.putCharacter({ ...c, photo: buf });
+        } catch {
+          try { await db.putCharacter({ ...c, photo: null }); }
+          catch { allOk = false; }
+        }
+      }
+    }
+    if (allOk) await db.setSetting('photoFormat', 2);
+  } catch { /* 失败则下次启动重试 */ }
+}
 
 const routes = {
   home: renderHome,
@@ -41,4 +64,5 @@ if ('serviceWorker' in navigator) {
     }
   });
 }
-render();
+// 迁移完成后再渲染，避免迁移写库与复习作答写库竞争
+migratePhotoFormat().then(render);

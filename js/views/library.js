@@ -70,7 +70,8 @@ export async function renderLibrary(root, navigate) {
     if (!file) return;
     if (!confirm('导入将覆盖现有全部数据，确定继续？')) return;
     try {
-      const { characters, reviewLog, missingPhotos } = await importZip(window.JSZip, file);
+      // 照片按 arraybuffer 导入（存字节而非 Blob，WebKit 的 IDB Blob 机制不可靠）
+      const { characters, reviewLog, missingPhotos } = await importZip(window.JSZip, file, 'arraybuffer');
       await db.replaceAll(characters, reviewLog);
       let msg = `导入成功：${characters.length} 个字，${reviewLog.length} 条复习记录`;
       if (missingPhotos.length) {
@@ -90,7 +91,7 @@ export async function renderLibrary(root, navigate) {
       try {
         const blob = await compressImage(file);
         const c = await db.getCharacter(Number(item.dataset.id));
-        c.photo = blob;
+        c.photo = await blob.arrayBuffer(); // 存字节而非 Blob（WebKit 的 IDB Blob 机制不可靠）
         await db.putCharacter(c);
         renderLibrary(root, navigate);
       } catch (err) {

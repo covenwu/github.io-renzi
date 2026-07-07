@@ -78,11 +78,12 @@ export async function renderReview(root, navigate) {
       img.classList.toggle('hidden', !hintShown);
       if (hintShown && !img.src) {
         try {
-          // 显示时一律从库里现读照片并复制到内存再展示：
-          // WebKit 在任何写库后都可能使先前读出的 Blob 句柄失效，显示环节不能依赖会话持有的句柄
+          // 显示时从库里现读照片：新格式为 ArrayBuffer（字节内联，WebKit 安全），
+          // 兼容尚未迁移的旧 Blob 格式
           const fresh = await db.getCharacter(id);
           if (!fresh?.photo) return;
-          const buf = await fresh.photo.arrayBuffer();
+          const buf = fresh.photo instanceof ArrayBuffer
+            ? fresh.photo : await fresh.photo.arrayBuffer();
           photoUrl = URL.createObjectURL(new Blob([buf], { type: 'image/jpeg' }));
           img.src = photoUrl;
         } catch {

@@ -51,9 +51,8 @@ export async function renderInput(root, navigate) {
           status.textContent = '压缩中…';
           const blob = await compressImage(file);
           const id = Number(item.dataset.id);
-          const chars = await db.getAllCharacters();
-          const c = chars.find(x => x.id === id);
-          c.photo = blob;
+          const c = await db.getCharacter(id);
+          c.photo = await blob.arrayBuffer(); // 存字节而非 Blob（WebKit 的 IDB Blob 机制不可靠）
           await db.putCharacter(c);
           status.textContent = '✓ 已保存';
         } catch (e) {

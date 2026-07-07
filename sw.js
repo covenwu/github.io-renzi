@@ -1,4 +1,4 @@
-const VERSION = 'renzi-v4'; // 每次发版改这个字符串触发缓存更新
+const VERSION = 'renzi-v5'; // 每次发版改这个字符串触发缓存更新
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/scheduler.js', 'js/util.js', 'js/db.js',

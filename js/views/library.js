@@ -60,6 +60,8 @@ export async function renderLibrary(root, navigate) {
         setTimeout(() => URL.revokeObjectURL(a.href), 10000); // 立即撤销会与下载启动竞争
       }
       await db.setSetting('lastBackupAt', Date.now());
+      const photoCount = chars.filter(c => c.photo).length;
+      alert(`已导出 ${chars.length} 个字、${photoCount} 张照片、${logs.length} 条复习记录`);
     } catch (err) {
       if (err.name !== 'AbortError') alert('导出失败：' + err.message); // 用户取消分享面板不算错误
     }

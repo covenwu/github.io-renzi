@@ -76,6 +76,17 @@ export async function renderReview(root, navigate) {
       const img = root.querySelector('img.hint');
       hintShown = !hintShown;
       if (hintShown && !img.src) {
+        // 兜底自愈：Blob 句柄失效导致加载失败时，从库里重读照片重建 URL（只重试一次）
+        img.onerror = async () => {
+          img.onerror = null;
+          const fresh = await db.getCharacter(id);
+          if (fresh?.photo) {
+            byId.set(id, fresh);
+            if (photoUrl) URL.revokeObjectURL(photoUrl);
+            photoUrl = URL.createObjectURL(fresh.photo);
+            img.src = photoUrl;
+          }
+        };
         photoUrl = URL.createObjectURL(c.photo);
         img.src = photoUrl;
       }
@@ -111,7 +122,9 @@ export async function renderReview(root, navigate) {
         await db.putCharacter(updated);
       }
       await db.addLog({ charId: id, reviewedAt: t, remembered });
-      if (changed) byId.set(id, updated);
+      // 覆写记录后从库里重读：WebKit 会使先前读出的照片 Blob 失效，
+      // 会话内存不能继续持有旧句柄，否则重现时提示图变破图
+      if (changed) byId.set(id, (await db.getCharacter(id)) ?? updated);
       const after = updateStat(before, remembered);
       stats.set(id, after);
       history.push({ id, remembered });

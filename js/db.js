@@ -43,6 +43,10 @@ export async function deleteCharacter(id) {
   await tx.done;
 }
 
+export async function getCharacter(id) {
+  return (await db()).get('characters', id);
+}
+
 export async function getAllCharacters() {
   return (await db()).getAll('characters');
 }

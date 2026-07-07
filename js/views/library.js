@@ -10,6 +10,11 @@ export async function renderLibrary(root, navigate) {
     const est = await navigator.storage.estimate();
     usage = `存储占用约 ${(est.usage / 1024 / 1024).toFixed(1)} MB`;
   } catch { /* 不支持则不显示 */ }
+  let version = '';
+  try {
+    // 用 SW 缓存名当版本标识，便于确认设备实际运行的版本
+    version = (await caches.keys()).find(k => k.startsWith('renzi-')) || '';
+  } catch { /* 不支持则不显示 */ }
 
   const items = chars.map(c => `
     <div class="libitem" data-id="${c.id}">
@@ -23,7 +28,7 @@ export async function renderLibrary(root, navigate) {
       <button class="btn-plain" id="back">← 返回</button>
       <h1>字库 / 设置</h1>
     </div>
-    <p>共 ${chars.length} 个汉字${usage ? ' · ' + usage : ''}</p>
+    <p>共 ${chars.length} 个汉字${usage ? ' · ' + usage : ''}${version ? ' · ' + version : ''}</p>
     <div class="toolrow">
       <button class="btn-plain" id="export">📦 导出备份</button>
       <label class="btn-plain">📥 导入
@@ -35,14 +40,25 @@ export async function renderLibrary(root, navigate) {
   root.querySelector('#back').onclick = () => navigate('home');
 
   root.querySelector('#export').onclick = async () => {
-    const logs = await db.getAllLogs();
-    const blob = await exportZip(window.JSZip, chars, logs, 'blob');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `renzi-backup-${localDateStr(Date.now())}.zip`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-    await db.setSetting('lastBackupAt', Date.now());
+    try {
+      const logs = await db.getAllLogs();
+      const blob = await exportZip(window.JSZip, chars, logs, 'blob');
+      const name = `renzi-backup-${localDateStr(Date.now())}.zip`;
+      const file = new File([blob], name, { type: 'application/zip' });
+      if (navigator.canShare?.({ files: [file] })) {
+        // iOS 主屏幕应用不支持 a[download] 下载（静默无反应），走系统分享面板（可选"存储到文件"）
+        await navigator.share({ files: [file], title: '认字备份' });
+      } else {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 10000); // 立即撤销会与下载启动竞争
+      }
+      await db.setSetting('lastBackupAt', Date.now());
+    } catch (err) {
+      if (err.name !== 'AbortError') alert('导出失败：' + err.message); // 用户取消分享面板不算错误
+    }
   };
 
   root.querySelector('#import').onchange = async e => {

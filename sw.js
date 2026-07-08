@@ -1,11 +1,11 @@
-const VERSION = 'renzi-v6'; // 每次发版改这个字符串触发缓存更新
+const VERSION = 'renzi-v7'; // 每次发版改这个字符串触发缓存更新
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/scheduler.js', 'js/util.js', 'js/db.js',
-  'js/backup.js', 'js/photo.js', 'js/speech.js',
+  'js/backup.js', 'js/photo.js', 'js/speech.js', 'js/words.js',
   'js/views/home.js', 'js/views/input.js', 'js/views/review.js',
   'js/views/library.js',
-  'vendor/idb.js', 'vendor/jszip.min.js',
+  'vendor/idb.js', 'vendor/jszip.min.js', 'vendor/words2.txt',
   'icons/icon-192.png', 'icons/icon-512.png',
 ];
 

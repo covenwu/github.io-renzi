@@ -52,6 +52,13 @@ button {
 .answers button { flex: 1; padding: 22px; font-size: 24px; font-weight: 600; color: #fff; }
 .answers .ok { background: var(--green); }
 .answers .no { background: var(--accent); }
+.words { text-align: center; margin: 4px 0 10px; }
+.words .lbl { font-size: 14px; color: var(--muted); margin-bottom: 8px; }
+.words .chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.words .wordchip {
+  padding: 10px 16px; font-size: 22px; background: #eef3ec;
+  color: var(--ink); border-radius: 14px;
+}
 .toolrow { display: flex; gap: 12px; justify-content: center; margin: 10px 0; }
 .navrow { display: flex; justify-content: space-between; margin-top: 6px; }
 .progress { text-align: center; color: var(--muted); font-size: 15px; margin: 8px 0; }

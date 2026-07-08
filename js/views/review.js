@@ -5,6 +5,7 @@ import {
 } from '../scheduler.js';
 import { todayStart } from '../util.js';
 import { speak, canSpeak } from '../speech.js';
+import { loadWords, matchWords } from '../words.js';
 
 export async function renderReview(root, navigate) {
   const now = Date.now();
@@ -13,6 +14,9 @@ export async function renderReview(root, navigate) {
   const stats = deriveDailyStats(
     todayLogs.filter(l => due.some(c => c.id === l.charId)));
   const byId = new Map(due.map(c => [c.id, c]));
+  // 组词展示所需：全字库字集 + 词表（离线预缓存，失败静默降级为空）
+  const libChars = new Set((await db.getAllCharacters()).map(c => c.char));
+  const words = await loadWords();
   let queue = orderDue(due.filter(c => !isGraduated(stats.get(c.id))))
     .map(c => c.id);
   const total = queue.length;
@@ -45,6 +49,8 @@ export async function renderReview(root, navigate) {
     const entry = viewingPast ? history[cursor] : null;
     const id = viewingPast ? entry.id : queue[0];
     const c = byId.get(id);
+    // 组词仅在回看卡显示：待答卡上词里含该字本身，提前显示等于泄题（先字后词）
+    const related = viewingPast ? matchWords(words, c.char, libChars) : [];
 
     root.innerHTML = `
       <div class="topbar">
@@ -56,6 +62,12 @@ export async function renderReview(root, navigate) {
         <div class="hanzi">${c.char}</div>
         <img class="hint hidden">
       </div>
+      ${related.length ? `
+      <div class="words">
+        <div class="lbl">组词（点词发音）</div>
+        <div class="chips">${related.map(w =>
+          `<button class="wordchip" data-word="${w}">${w}</button>`).join('')}</div>
+      </div>` : ''}
       <div class="toolrow">
         ${c.photo ? `<button class="btn-plain" id="hint">💡 提示</button>` : ''}
         ${canSpeak() ? `<button class="btn-plain" id="speak">🔊 发音</button>` : ''}
@@ -94,6 +106,9 @@ export async function renderReview(root, navigate) {
     };
     const speakBtn = root.querySelector('#speak');
     if (speakBtn) speakBtn.onclick = () => speak(c.char);
+    for (const chip of root.querySelectorAll('.wordchip')) {
+      chip.onclick = () => speak(chip.dataset.word);
+    }
     root.querySelector('#prev').onclick = () => {
       cursor = cursor === -1 ? history.length - 1 : cursor - 1;
       renderCard();

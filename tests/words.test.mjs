@@ -27,7 +27,7 @@ test('无匹配返回空数组', () => {
 
 test('真实词表：天空/明天 可被匹配到', () => {
   const words = readFileSync(new URL('../vendor/words2.txt', import.meta.url), 'utf-8')
-    .split('\n').filter(w => w.length === 2);
+    .split(/\r?\n/).map(w => w.trim()).filter(w => w.length === 2);
   assert.ok(words.length >= 19000, '词表规模');
   const lib = new Set(['天', '空', '明']);
   const m = matchWords(words, '天', lib, 10);

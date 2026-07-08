@@ -6,7 +6,7 @@ let wordsPromise;
 export function loadWords() {
   wordsPromise ??= fetch('vendor/words2.txt')
     .then(r => r.text())
-    .then(t => t.split('\n').filter(w => w.length === 2))
+    .then(t => t.split(/\r?\n/).map(w => w.trim()).filter(w => w.length === 2))
     .catch(() => []);
   return wordsPromise;
 }
